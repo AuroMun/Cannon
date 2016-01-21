@@ -13,6 +13,7 @@
 
 using namespace std;
 
+
 struct VAO {
     GLuint VertexArrayID;
     GLuint VertexBuffer;
@@ -137,8 +138,8 @@ struct VAO* create3DObject (GLenum primitive_mode, int numVertices, const GLfloa
     glGenBuffers (1, &(vao->VertexBuffer)); // VBO - vertices
     glGenBuffers (1, &(vao->ColorBuffer));  // VBO - colors
 
-    glBindVertexArray (vao->VertexArrayID); // Bind the VAO 
-    glBindBuffer (GL_ARRAY_BUFFER, vao->VertexBuffer); // Bind the VBO vertices 
+    glBindVertexArray (vao->VertexArrayID); // Bind the VAO
+    glBindBuffer (GL_ARRAY_BUFFER, vao->VertexBuffer); // Bind the VBO vertices
     glBufferData (GL_ARRAY_BUFFER, 3*numVertices*sizeof(GLfloat), vertex_buffer_data, GL_STATIC_DRAW); // Copy the vertices into VBO
     glVertexAttribPointer(
                           0,                  // attribute 0. Vertices
@@ -149,7 +150,7 @@ struct VAO* create3DObject (GLenum primitive_mode, int numVertices, const GLfloa
                           (void*)0            // array buffer offset
                           );
 
-    glBindBuffer (GL_ARRAY_BUFFER, vao->ColorBuffer); // Bind the VBO colors 
+    glBindBuffer (GL_ARRAY_BUFFER, vao->ColorBuffer); // Bind the VBO colors
     glBufferData (GL_ARRAY_BUFFER, 3*numVertices*sizeof(GLfloat), color_buffer_data, GL_STATIC_DRAW);  // Copy the vertex colors
     glVertexAttribPointer(
                           1,                  // attribute 1. Color
@@ -300,6 +301,40 @@ void reshapeWindow (GLFWwindow* window, int width, int height)
 
 VAO *triangle, *rectangle, *circle;
 
+//Circle Class, objects: ball
+class circ{
+	public:
+	float rad, velX, velY;
+	void createCircle(float r)
+		{
+			rad = r;
+			//GLfloat vertex_buffer_data[3*3] = {1, 1, 0, -1, 1, 0, -1, -1, 0,};
+			GLfloat vertex_buffer_data[3*1000]; // = {1, 1, 0, -1, 1, 0, -1, -1, 0,};
+			int i;
+			for(i=0; i<1000; i+=3){
+				if(i%6==3){
+					vertex_buffer_data[i] = 0;
+					vertex_buffer_data[i+1] = 0;
+					vertex_buffer_data[i+2] = 0;
+					continue;
+				}
+				vertex_buffer_data[i] = rad*sin(2.0*3.141592*i/100);
+				vertex_buffer_data[i+1] = rad*cos(2.0*3.141592*i/100);
+				vertex_buffer_data[i+2] = 0;
+			}
+
+		   GLfloat color_buffer_data [3*1000];
+		   for(i=0; i<1000; i+=3){
+				color_buffer_data[i] = 1;
+				color_buffer_data[i+1] = 0;
+				color_buffer_data[i+2] = 1;
+			}
+
+		  // create3DObject creates and returns a handle to a VAO that can be used later
+		  circle = create3DObject(GL_TRIANGLES, 300, vertex_buffer_data, color_buffer_data, GL_FILL);
+		}
+} ball, cannon;
+
 // Creates the triangle object used in this sample code
 void createTriangle ()
 {
@@ -322,65 +357,103 @@ void createTriangle ()
   triangle = create3DObject(GL_TRIANGLES, 3, vertex_buffer_data, color_buffer_data, GL_LINE);
 }
 
-void createCircle()
-{
-	//GLfloat vertex_buffer_data[3*3] = {1, 1, 0, -1, 1, 0, -1, -1, 0,}; 
-	GLfloat vertex_buffer_data[3*1000]; // = {1, 1, 0, -1, 1, 0, -1, -1, 0,}; 
-	int i;
-	for(i=0; i<1000; i+=3){
-		if(i%6==3){
-			vertex_buffer_data[i] = 0;
-			vertex_buffer_data[i+1] = 0;
-			vertex_buffer_data[i+2] = 0;
-			continue;
-		}
-		vertex_buffer_data[i] = sin(2.0*3.141592*i/100);
-		vertex_buffer_data[i+1] = cos(2.0*3.141592*i/100);
-		vertex_buffer_data[i+2] = 0;
-	}
-  
-   GLfloat color_buffer_data [3*100];
-   for(i=0; i<100; i+=3){
-		color_buffer_data[i] = 1;
-		color_buffer_data[i+1] = 1;
-		color_buffer_data[i+2] = 1;
-	}
-
-  // create3DObject creates and returns a handle to a VAO that can be used later
-  circle = create3DObject(GL_TRIANGLES, 300, vertex_buffer_data, color_buffer_data, GL_FILL);
-}
-
-// Creates the rectangle object used in this sample code
-void createRectangle ()
+//Create a rectangle object
+VAO* createRectangle (float x1, float y1, float width1, float height1)
 {
   // GL3 accepts only Triangles. Quads are not supported
-  static const GLfloat vertex_buffer_data [] = {
-    -1.2,-1,0, // vertex 1
-    1.2,-1,0, // vertex 2
-    1.2, 1,0, // vertex 3
+  VAO *recta;
+  float x = x1; float y = y1; float width = width1; float height = height1;
+  GLfloat vertex_buffer_data [] = {
+    x,y,0, // vertex 1
+    x,y+height,0, // vertex 2
+    x+width, y+height,0, // vertex 3
 
-    1.2, 1,0, // vertex 3
-    -1.2, 1,0, // vertex 4
-    -1.2,-1,0  // vertex 1
+    x+width, y+height,0, // vertex 3
+    x+width, y,0, // vertex 4
+    x,y,0  // vertex 1
   };
 
-  static const GLfloat color_buffer_data [] = {
+  GLfloat color_buffer_data [] = {
     1,0,0, // color 1
-    0,0,1, // color 2
-    0,1,0, // color 3
+    1,0,0, // color 2
+    1,0,0, // color 3
 
-    0,1,0, // color 3
-    0.3,0.3,0.3, // color 4
+    1,0,0, // color 3
+    1,0,0, // color 4
     1,0,0  // color 1
   };
 
   // create3DObject creates and returns a handle to a VAO that can be used later
-  rectangle = create3DObject(GL_TRIANGLES, 6, vertex_buffer_data, color_buffer_data, GL_FILL);
+  recta = create3DObject(GL_TRIANGLES, 6, vertex_buffer_data, color_buffer_data, GL_FILL);
+  return recta;
 }
+
+// Creates the rectangle object used in this sample code
+class rect{
+  public:
+    float x, y, width, height;
+    void createRectangle (float x1, float y1, float width1, float height1)
+    {
+      // GL3 accepts only Triangles. Quads are not supported
+      x = x1; y = y1; width = width1; height = height1;
+      static const GLfloat vertex_buffer_data [] = {
+        x,y,0, // vertex 1
+        x,y+height,0, // vertex 2
+        x+width, y+height,0, // vertex 3
+
+        x+width, y+height,0, // vertex 3
+        x+width, y,0, // vertex 4
+        x,y,0  // vertex 1
+      };
+
+      static const GLfloat color_buffer_data [] = {
+        1,0,0, // color 1
+        1,0,0, // color 2
+        1,0,0, // color 3
+
+        1,0,0, // color 3
+        1,0,0, // color 4
+        1,0,0  // color 1
+      };
+
+      // create3DObject creates and returns a handle to a VAO that can be used later
+      rectangle = create3DObject(GL_TRIANGLES, 6, vertex_buffer_data, color_buffer_data, GL_FILL);
+    }
+}base;
+
+glm::mat4 MVP;
+glm::mat4 VP;
+
 
 float camera_rotation_angle = 90;
 float rectangle_rotation = 0;
 float triangle_rotation = 0;
+float translateX = 0;
+float translateY = 0;
+
+//Map class, updates happen here
+class map{
+public:
+  vector<VAO*> arr_rec;
+  //VAO* rec;
+  //map(){
+    //arr_rec.push_back(createRectangle(0,0,0,0));
+  //  rectangle = createRectangle(-4,-3,1,1);
+//  }
+  void mapInit(){
+    arr_rec.push_back(createRectangle(-4,-3,5,5));
+  }
+  void update(){
+    for(int i=0; i < arr_rec.size(); i++) { //rectangle
+      Matrices.model = glm::mat4(1.0f);
+      glm::mat4 translateRectangle = glm::translate (glm::vec3(0, 0, 0));
+      Matrices.model *= translateRectangle;
+      MVP = VP * Matrices.model;
+      glUniformMatrix4fv(Matrices.MatrixID, 1, GL_FALSE, &MVP[0][0]);
+      draw3DObject(arr_rec[i]);
+    }
+  }
+}World;
 
 /* Render the scene with openGL */
 /* Edit this function according to your assignment */
@@ -407,12 +480,12 @@ void draw ()
 
   // Compute ViewProject matrix as view/camera might not be changed for this frame (basic scenario)
   //  Don't change unless you are sure!!
-  glm::mat4 VP = Matrices.projection * Matrices.view;
+  VP = Matrices.projection * Matrices.view;
 
   // Send our transformation to the currently bound shader, in the "MVP" uniform
   // For each model you render, since the MVP will be different (at least the M part)
   //  Don't change unless you are sure!!
-  glm::mat4 MVP;	// MVP = Projection * View * Model
+  	// MVP = Projection * View * Model
 
   // Load identity to model matrix
   Matrices.model = glm::mat4(1.0f);
@@ -422,20 +495,20 @@ void draw ()
   glm::mat4 translateTriangle = glm::translate (glm::vec3(-2.0f, 0.0f, 0.0f)); // glTranslatef
   glm::mat4 rotateTriangle = glm::rotate((float)(triangle_rotation*M_PI/180.0f), glm::vec3(0,0,1));  // rotate about vector (1,0,0)
   glm::mat4 triangleTransform = translateTriangle * rotateTriangle;
-  Matrices.model *= triangleTransform; 
+  Matrices.model *= triangleTransform;
   MVP = VP * Matrices.model; // MVP = p * V * M
 
   //  Don't change unless you are sure!!
   glUniformMatrix4fv(Matrices.MatrixID, 1, GL_FALSE, &MVP[0][0]);
 
   // draw3DObject draws the VAO given to it using current MVP matrix
-  draw3DObject(triangle);
+  //draw3DObject(triangle);
 
   // Pop matrix to undo transformations till last push matrix instead of recomputing model matrix
   // glPopMatrix ();
   Matrices.model = glm::mat4(1.0f);
-  rectangle_rotation=0;
-  glm::mat4 translateRectangle = glm::translate (glm::vec3(2, 0, 0));        // glTranslatef
+  rectangle_rotation=0; //Comment to enable rotation
+  glm::mat4 translateRectangle = glm::translate (glm::vec3(0, 0, 0));        // glTranslatef
   glm::mat4 rotateRectangle = glm::rotate((float)(rectangle_rotation*M_PI/180.0f), glm::vec3(0,0,1)); // rotate about vector (-1,1,1)
   Matrices.model *= (translateRectangle * rotateRectangle);
   MVP = VP * Matrices.model;
@@ -443,14 +516,28 @@ void draw ()
 
   // draw3DObject draws the VAO given to it using current MVP matrix
   //draw3DObject(rectangle);
+
+  World.update();
+  //Draw circle
+  Matrices.model = glm::mat4(1.0f);
+  rectangle_rotation=0; //Comment to enable rotation
+  glm::mat4 translateCircle = glm::translate (glm::vec3(0, translateY, 0));        // glTranslatef
+  glm::mat4 rotateCircle = glm::rotate((float)(rectangle_rotation*M_PI/180.0f), glm::vec3(0,0,1)); // rotate about vector (-1,1,1)
+  Matrices.model *= (translateCircle * rotateCircle);
+  MVP = VP * Matrices.model;
+  glUniformMatrix4fv(Matrices.MatrixID, 1, GL_FALSE, &MVP[0][0]);
   draw3DObject(circle);
   // Increment angles
   float increments = 1;
 
   //camera_rotation_angle++; // Simulating camera rotation
   triangle_rotation =  triangle_rotation + increments*triangle_rot_dir*triangle_rot_status;
-  rectangle_rotation = rectangle_rotation + increments*rectangle_rot_dir*rectangle_rot_status;
+  rectangle_rotation = rectangle_rotation + 10*increments*rectangle_rot_dir*rectangle_rot_status;
+
+  //Translation
+  translateY += 0.01 ;
 }
+
 
 /* Initialise glfw window, I/O callbacks and the renderer to use */
 /* Nothing to Edit here */
@@ -507,14 +594,16 @@ void initGL (GLFWwindow* window, int width, int height)
     /* Objects should be created before any other gl function and shaders */
 	// Create the models
 	createTriangle (); // Generate the VAO, VBOs, vertices data & copy into the array buffer
-	createRectangle ();
-	createCircle ();
+	//base.createRectangle (-4, -2, 1, 1);
+  cannon.createCircle (0.2);
+  World.mapInit();
+	//ball.createCircle (1);
 	// Create and compile our GLSL program from the shaders
 	programID = LoadShaders( "Sample_GL.vert", "Sample_GL.frag" );
 	// Get a handle for our "MVP" uniform
 	Matrices.MatrixID = glGetUniformLocation(programID, "MVP");
 
-	
+
 	reshapeWindow (window, width, height);
 
     // Background color of the scene
@@ -532,8 +621,8 @@ void initGL (GLFWwindow* window, int width, int height)
 
 int main (int argc, char** argv)
 {
-	int width = 600;
-	int height = 600;
+	int width = 1080;
+	int height = 1080;
 
     GLFWwindow* window = initGLFW(width, height);
 
