@@ -298,7 +298,7 @@ void reshapeWindow (GLFWwindow* window, int width, int height)
     Matrices.projection = glm::ortho(-4.0f, 4.0f, -4.0f, 4.0f, 0.1f, 500.0f);
 }
 
-VAO *triangle, *rectangle;
+VAO *triangle, *rectangle, *circle;
 
 // Creates the triangle object used in this sample code
 void createTriangle ()
@@ -322,6 +322,34 @@ void createTriangle ()
   triangle = create3DObject(GL_TRIANGLES, 3, vertex_buffer_data, color_buffer_data, GL_LINE);
 }
 
+void createCircle()
+{
+	//GLfloat vertex_buffer_data[3*3] = {1, 1, 0, -1, 1, 0, -1, -1, 0,}; 
+	GLfloat vertex_buffer_data[3*1000]; // = {1, 1, 0, -1, 1, 0, -1, -1, 0,}; 
+	int i;
+	for(i=0; i<1000; i+=3){
+		if(i%6==3){
+			vertex_buffer_data[i] = 0;
+			vertex_buffer_data[i+1] = 0;
+			vertex_buffer_data[i+2] = 0;
+			continue;
+		}
+		vertex_buffer_data[i] = sin(2.0*3.141592*i/100);
+		vertex_buffer_data[i+1] = cos(2.0*3.141592*i/100);
+		vertex_buffer_data[i+2] = 0;
+	}
+  
+   GLfloat color_buffer_data [3*100];
+   for(i=0; i<100; i+=3){
+		color_buffer_data[i] = 1;
+		color_buffer_data[i+1] = 1;
+		color_buffer_data[i+2] = 1;
+	}
+
+  // create3DObject creates and returns a handle to a VAO that can be used later
+  circle = create3DObject(GL_TRIANGLES, 300, vertex_buffer_data, color_buffer_data, GL_FILL);
+}
+
 // Creates the rectangle object used in this sample code
 void createRectangle ()
 {
@@ -334,16 +362,6 @@ void createRectangle ()
     1.2, 1,0, // vertex 3
     -1.2, 1,0, // vertex 4
     -1.2,-1,0  // vertex 1
-  };
-
-  static const GLfloat vertex2_buffer_data [] = {
-	  -1.2, -1, 0,
-	  1.2, -1, 0,
-	  1.2, 1, 0,
-
-	  1.2, 1, 0,
-	  2, 1, 0,
-	  -1.2, -1, 0
   };
 
   static const GLfloat color_buffer_data [] = {
@@ -416,7 +434,7 @@ void draw ()
   // Pop matrix to undo transformations till last push matrix instead of recomputing model matrix
   // glPopMatrix ();
   Matrices.model = glm::mat4(1.0f);
-
+  rectangle_rotation=0;
   glm::mat4 translateRectangle = glm::translate (glm::vec3(2, 0, 0));        // glTranslatef
   glm::mat4 rotateRectangle = glm::rotate((float)(rectangle_rotation*M_PI/180.0f), glm::vec3(0,0,1)); // rotate about vector (-1,1,1)
   Matrices.model *= (translateRectangle * rotateRectangle);
@@ -424,8 +442,8 @@ void draw ()
   glUniformMatrix4fv(Matrices.MatrixID, 1, GL_FALSE, &MVP[0][0]);
 
   // draw3DObject draws the VAO given to it using current MVP matrix
-  draw3DObject(rectangle);
-
+  //draw3DObject(rectangle);
+  draw3DObject(circle);
   // Increment angles
   float increments = 1;
 
@@ -490,7 +508,7 @@ void initGL (GLFWwindow* window, int width, int height)
 	// Create the models
 	createTriangle (); // Generate the VAO, VBOs, vertices data & copy into the array buffer
 	createRectangle ();
-	
+	createCircle ();
 	// Create and compile our GLSL program from the shaders
 	programID = LoadShaders( "Sample_GL.vert", "Sample_GL.frag" );
 	// Get a handle for our "MVP" uniform
