@@ -357,6 +357,35 @@ void createTriangle ()
   triangle = create3DObject(GL_TRIANGLES, 3, vertex_buffer_data, color_buffer_data, GL_LINE);
 }
 
+
+VAO* createCircle(float x, float y, float r)
+  {
+    float rad = r;
+    //GLfloat vertex_buffer_data[3*3] = {1, 1, 0, -1, 1, 0, -1, -1, 0,};
+    GLfloat vertex_buffer_data[3*1000]; // = {1, 1, 0, -1, 1, 0, -1, -1, 0,};
+    int i;
+    for(i=0; i<1000; i+=3){
+      if(i%6==3){
+        vertex_buffer_data[i] = x;
+        vertex_buffer_data[i+1] = y;
+        vertex_buffer_data[i+2] = 0;
+        continue;
+      }
+      vertex_buffer_data[i] = x + rad*sin(2.0*3.141592*i/100);
+      vertex_buffer_data[i+1] = y + rad*cos(2.0*3.141592*i/100);
+      vertex_buffer_data[i+2] = 0;
+    }
+
+     GLfloat color_buffer_data [3*1000];
+     for(i=0; i<1000; i+=3){
+      color_buffer_data[i] = 1;
+      color_buffer_data[i+1] = 1;
+      color_buffer_data[i+2] = 0;
+    }
+
+    // create3DObject creates and returns a handle to a VAO that can be used later
+    return create3DObject(GL_TRIANGLES, 300, vertex_buffer_data, color_buffer_data, GL_FILL);
+  }
 //Create a rectangle object
 VAO* createRectangle (float x1, float y1, float width1, float height1)
 {
@@ -441,7 +470,11 @@ public:
   //  rectangle = createRectangle(-4,-3,1,1);
 //  }
   void mapInit(){
-    arr_rec.push_back(createRectangle(-4,-3,5,5));
+    arr_rec.push_back(createRectangle(-4,-4,0.2,8));
+    arr_rec.push_back(createRectangle(-4,-4,8,0.2));
+    arr_rec.push_back(createRectangle(0,1,0.2,0.3));
+    arr_rec.push_back(createRectangle(3,2,1,1));
+    arr_rec.push_back(createCircle(-3, -3, 0.5));
   }
   void update(){
     for(int i=0; i < arr_rec.size(); i++) { //rectangle
