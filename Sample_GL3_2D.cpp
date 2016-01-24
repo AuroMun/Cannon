@@ -6,13 +6,35 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+#define airResistance 0.985
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-
 using namespace std;
 
+double xpos, ypos, xposNew, yposNew;
+int platformNumber = 4, obstacleNumber;
+double obstacleData[3*15];
+double targetX = 1, targetY = 1;
+double platformData[15*4] = {-3,-3,6,0.5, 3,-2,6,0.5, 4,6,5,0.5, -7,1.5,2,0.5};
+double obstacle[10*3];
+float canX = -14; float canY = -7; float canR = 0.4;
+int is_ball=0, level=1; //is_ball == 1 if there's a ball in the air
+
+class levelData{
+public:
+  int platformNumber, obstacleNumber;
+  double platformData[4*15], obstacleData[3*15];
+  double targetX, targetY;
+
+}levels[10];
+
+void levelGen(){
+  ifstream fin;
+  fin.open("1.txt");
+
+}
 
 struct VAO {
     GLuint VertexArrayID;
@@ -255,22 +277,7 @@ void keyboardChar (GLFWwindow* window, unsigned int key)
 }
 
 /* Executed when a mouse button is pressed/released */
-void mouseButton (GLFWwindow* window, int button, int action, int mods)
-{
-    switch (button) {
-        case GLFW_MOUSE_BUTTON_LEFT:
-            if (action == GLFW_RELEASE)
-                triangle_rot_dir *= -1;
-            break;
-        case GLFW_MOUSE_BUTTON_RIGHT:
-            if (action == GLFW_RELEASE) {
-                rectangle_rot_dir *= -1;
-            }
-            break;
-        default:
-            break;
-    }
-}
+
 
 
 /* Executed when window is resized to 'width' and 'height' */
@@ -296,44 +303,10 @@ void reshapeWindow (GLFWwindow* window, int width, int height)
     // Matrices.projection = glm::perspective (fov, (GLfloat) fbwidth / (GLfloat) fbheight, 0.1f, 500.0f);
 
     // Ortho projection for 2D views
-    Matrices.projection = glm::ortho(-4.0f, 4.0f, -4.0f, 4.0f, 0.1f, 500.0f);
+    Matrices.projection = glm::ortho(-16.0f, 16.0f, -9.0f, 9.0f, 0.1f, 500.0f);
 }
 
 VAO *triangle, *rectangle, *circle;
-
-//Circle Class, objects: ball
-class circ{
-	public:
-	float rad, velX, velY;
-	void createCircle(float r)
-		{
-			rad = r;
-			//GLfloat vertex_buffer_data[3*3] = {1, 1, 0, -1, 1, 0, -1, -1, 0,};
-			GLfloat vertex_buffer_data[3*1000]; // = {1, 1, 0, -1, 1, 0, -1, -1, 0,};
-			int i;
-			for(i=0; i<1000; i+=3){
-				if(i%6==3){
-					vertex_buffer_data[i] = 0;
-					vertex_buffer_data[i+1] = 0;
-					vertex_buffer_data[i+2] = 0;
-					continue;
-				}
-				vertex_buffer_data[i] = rad*sin(2.0*3.141592*i/100);
-				vertex_buffer_data[i+1] = rad*cos(2.0*3.141592*i/100);
-				vertex_buffer_data[i+2] = 0;
-			}
-
-		   GLfloat color_buffer_data [3*1000];
-		   for(i=0; i<1000; i+=3){
-				color_buffer_data[i] = 1;
-				color_buffer_data[i+1] = 0;
-				color_buffer_data[i+2] = 1;
-			}
-
-		  // create3DObject creates and returns a handle to a VAO that can be used later
-		  circle = create3DObject(GL_TRIANGLES, 300, vertex_buffer_data, color_buffer_data, GL_FILL);
-		}
-} ball, cannon;
 
 // Creates the triangle object used in this sample code
 void createTriangle ()
@@ -358,7 +331,7 @@ void createTriangle ()
 }
 
 
-VAO* createCircle(float x, float y, float r)
+VAO* createCircle(float r)
   {
     float rad = r;
     //GLfloat vertex_buffer_data[3*3] = {1, 1, 0, -1, 1, 0, -1, -1, 0,};
@@ -366,20 +339,20 @@ VAO* createCircle(float x, float y, float r)
     int i;
     for(i=0; i<1000; i+=3){
       if(i%6==3){
-        vertex_buffer_data[i] = x;
-        vertex_buffer_data[i+1] = y;
+        vertex_buffer_data[i] = 0;
+        vertex_buffer_data[i+1] = 0;
         vertex_buffer_data[i+2] = 0;
         continue;
       }
-      vertex_buffer_data[i] = x + rad*sin(2.0*3.141592*i/100);
-      vertex_buffer_data[i+1] = y + rad*cos(2.0*3.141592*i/100);
+      vertex_buffer_data[i] = rad*sin(2.0*3.141592*i/100);
+      vertex_buffer_data[i+1] = rad*cos(2.0*3.141592*i/100);
       vertex_buffer_data[i+2] = 0;
     }
 
      GLfloat color_buffer_data [3*1000];
      for(i=0; i<1000; i+=3){
       color_buffer_data[i] = 1;
-      color_buffer_data[i+1] = 1;
+      color_buffer_data[i+1] = 0.843;
       color_buffer_data[i+2] = 0;
     }
 
@@ -387,11 +360,11 @@ VAO* createCircle(float x, float y, float r)
     return create3DObject(GL_TRIANGLES, 300, vertex_buffer_data, color_buffer_data, GL_FILL);
   }
 //Create a rectangle object
-VAO* createRectangle (float x1, float y1, float width1, float height1)
+VAO* createRectangle ( float width1, float height1)
 {
   // GL3 accepts only Triangles. Quads are not supported
   VAO *recta;
-  float x = x1; float y = y1; float width = width1; float height = height1;
+  float x = 0; float y = 0; float width = width1; float height = height1;
   GLfloat vertex_buffer_data [] = {
     x,y,0, // vertex 1
     x,y+height,0, // vertex 2
@@ -417,42 +390,9 @@ VAO* createRectangle (float x1, float y1, float width1, float height1)
   return recta;
 }
 
-// Creates the rectangle object used in this sample code
-class rect{
-  public:
-    float x, y, width, height;
-    void createRectangle (float x1, float y1, float width1, float height1)
-    {
-      // GL3 accepts only Triangles. Quads are not supported
-      x = x1; y = y1; width = width1; height = height1;
-      static const GLfloat vertex_buffer_data [] = {
-        x,y,0, // vertex 1
-        x,y+height,0, // vertex 2
-        x+width, y+height,0, // vertex 3
-
-        x+width, y+height,0, // vertex 3
-        x+width, y,0, // vertex 4
-        x,y,0  // vertex 1
-      };
-
-      static const GLfloat color_buffer_data [] = {
-        1,0,0, // color 1
-        1,0,0, // color 2
-        1,0,0, // color 3
-
-        1,0,0, // color 3
-        1,0,0, // color 4
-        1,0,0  // color 1
-      };
-
-      // create3DObject creates and returns a handle to a VAO that can be used later
-      rectangle = create3DObject(GL_TRIANGLES, 6, vertex_buffer_data, color_buffer_data, GL_FILL);
-    }
-}base;
 
 glm::mat4 MVP;
 glm::mat4 VP;
-
 
 float camera_rotation_angle = 90;
 float rectangle_rotation = 0;
@@ -462,31 +402,170 @@ float translateY = 0;
 
 //Map class, updates happen here
 class map{
+  public:
+    vector<VAO*> arr_rec;
+    VAO* gun; float gunRotation;
+    void mapInit(){
+      gun = createRectangle( 2, 1 ); gunRotation = 0;
+    }
+    void update(){
+      for(int i=0; i < arr_rec.size(); i++) { //rectangle
+        Matrices.model = glm::mat4(1.0f);
+        // Get mouse position
+        //xpos*8/1080, ypos*8/1080
+
+        glm::mat4 translateRectangle = glm::translate (glm::vec3(0, 0, 0));
+        //cout<<xpos<<" "<<ypos<<endl;
+        //cout<<(xpos-500)*8/1000<<" "<<(-ypos+500)*8/1000<<endl;
+
+        Matrices.model *= translateRectangle;
+        MVP = VP * Matrices.model;
+        glUniformMatrix4fv(Matrices.MatrixID, 1, GL_FALSE, &MVP[0][0]);
+        draw3DObject(arr_rec[i]);
+      }
+      Matrices.model = glm::mat4(1.0f);
+
+      //Rotate about -3, -3
+      glm::mat4 translateGun = glm::translate (glm::vec3(-14, -7, 0));        // glTranslatef
+      float gunRotationAngle = atan2((yposNew+7),(xposNew+14)); //cout<<"Rot angle: "<<(yposNew+14)/(xposNew+7)<<endl;
+      glm::mat4 rotateGun = glm::rotate((float)(gunRotationAngle), glm::vec3(0,0,1)); // rotate about vector (-1,1,1)
+      glm::mat4 translateAgain =  glm::translate (glm::vec3(+14, +7, 0));        // glTranslatef
+
+      //Translate to where it was
+      glm::mat4 translateAgain1 =  glm::translate (glm::vec3(-14+1.3/2, -7.5, 0));        // glTranslatef
+
+      Matrices.model *= (translateGun * rotateGun * translateAgain * translateAgain1);
+      MVP = VP * Matrices.model;
+      glUniformMatrix4fv(Matrices.MatrixID, 1, GL_FALSE, &MVP[0][0]);;
+      gunRotation++;
+      draw3DObject(gun);
+    }
+}World;
+
+//class obj;
+//void checkCollision(double , double , double , double, obj );
+
+class obj{
 public:
-  vector<VAO*> arr_rec;
-  //VAO* rec;
-  //map(){
-    //arr_rec.push_back(createRectangle(0,0,0,0));
-  //  rectangle = createRectangle(-4,-3,1,1);
-//  }
-  void mapInit(){
-    arr_rec.push_back(createRectangle(-4,-4,0.2,8));
-    arr_rec.push_back(createRectangle(-4,-4,8,0.2));
-    arr_rec.push_back(createRectangle(0,1,0.2,0.3));
-    arr_rec.push_back(createRectangle(3,2,1,1));
-    arr_rec.push_back(createCircle(-3, -3, 0.5));
+  int is_circle;
+  double xPos, yPos, width, height, radius;
+  double xVel, yVel, xAcc, yAcc;
+  VAO* toDraw;
+
+  void objInit(double xPosNew,double yPosNew, double widthNew, double heightNew){
+    xPos = xPosNew; yPos = yPosNew;
+    width = widthNew; height = heightNew;
+    toDraw = createRectangle(width, height);
+  }
+  void objInit(double xPosNew,double yPosNew,double radiusNew){
+    xPos = xPosNew; yPos = yPosNew; radius = radiusNew;
+    toDraw = createCircle(radius);
+    update();
+  }
+  void reset(double xPosNew, double yPosNew){
+    xPos = xPosNew; yPos = yPosNew;
+    xVel = yVel = xAcc = yAcc = 0;
+    update();
   }
   void update(){
-    for(int i=0; i < arr_rec.size(); i++) { //rectangle
-      Matrices.model = glm::mat4(1.0f);
-      glm::mat4 translateRectangle = glm::translate (glm::vec3(0, 0, 0));
-      Matrices.model *= translateRectangle;
-      MVP = VP * Matrices.model;
-      glUniformMatrix4fv(Matrices.MatrixID, 1, GL_FALSE, &MVP[0][0]);
-      draw3DObject(arr_rec[i]);
-    }
+    //if(radius!=0.1)checkCollision(xPos, yPos, width, height);
+    xVel += xAcc; yVel += yAcc;
+    xPos += xVel; yPos += yVel;
+    //if(xVel > 0.4)xVel=0.4; if(yVel>0.4)yVel=0.4;
+    Matrices.model = glm::mat4(1.0f);
+    glm::mat4 translate = glm::translate (glm::vec3(xPos, yPos, 0));        // glTranslatef
+    glm::mat4 rotate = glm::rotate((float)(0), glm::vec3(0,0,1));
+    Matrices.model *= (translate * rotate);
+    MVP = VP * Matrices.model;
+    glUniformMatrix4fv(Matrices.MatrixID, 1, GL_FALSE, &MVP[0][0]);;
+    draw3DObject(toDraw);
   }
-}World;
+  void updatePhysics(){
+    xVel *= airResistance; yVel *= airResistance;
+  }
+
+}cannonball, cannon, targetA, wall[4], platform[10];
+
+void checkCollision(obj &A, obj &B){ //B is a circle, A is a rectangle
+  double xRect = A.xPos; double yRect = A.yPos; double width = A.width; double height = A.height;
+  double x = B.xPos; double y = B.yPos; double yVel = B.yVel; double xVel = B.xVel;
+  //cout<<x<<" "<<y<<" "<<yVel<<" "<<xVel<<endl;
+  if(x > xRect && x < xRect+width && y > yRect+height && y+yVel-canR<yRect+height){
+    B.yPos=yRect+height+canR;
+    //cout<<B.yPos<<" "<<cannonball.yPos<<endl;
+    B.yVel*=-0.9;
+    B.xVel*=0.98;
+  }
+  else if(x > xRect && x < xRect+width && y < yRect&& y+yVel+canR>yRect){
+    B.yPos=yRect-canR;
+    B.yVel*=-0.9;
+  }
+  else if(y > yRect && y < yRect+height && x > xRect+width && x+xVel-canR<xRect+width){
+    B.xPos = xRect+width+canR;
+    B.xVel*=-1;
+  }
+  else if(y > yRect && y < yRect+height && x < xRect && x+xVel+canR>xRect){
+    B.xPos = xRect-canR;
+    B.xVel*=-1;
+  }
+}
+
+int checkColloisionCircle(obj &firstBall, obj &secondBall){ //Circle //For now, B is target
+  if (firstBall.xPos + firstBall.radius + secondBall.radius > secondBall.xPos
+&& firstBall.xPos < secondBall.xPos + firstBall.radius + secondBall.radius
+&& firstBall.yPos + firstBall.radius + secondBall.radius > secondBall.yPos
+&& firstBall.yPos < secondBall.yPos + firstBall.radius + secondBall.radius)
+{
+  //AABBs are overlapping
+  cout<<"YAY!"<<endl;
+}
+}
+
+void makewalls(){
+  wall[0].objInit(-16, -9, 32, 0.2);
+  wall[1].objInit(-16, -9, 0.2, 18);
+  wall[2].objInit(-16, 8.8, 32, 0.2);
+  wall[3].objInit(15.8, -9, 0.2, 18);
+
+  targetA.objInit(targetX, targetY, 0.8);
+
+  for(int i=0; i<platformNumber; i++){
+    platform[i].objInit(platformData[4*i], platformData[4*i+1], platformData[4*i+2], platformData[4*i+3]);
+    //if(i==1)platform[i].yVel=0.02;
+  }
+  for(int i=0; i<4; i++)wall[i].update();
+  for(int i=0; i<platformNumber; i++)platform[i].update();
+}
+
+void mouseButton (GLFWwindow* window, int button, int action, int mods)
+{
+    switch (button) {
+        case GLFW_MOUSE_BUTTON_LEFT:
+
+          if(is_ball==0){
+              is_ball = 1;
+
+              //ball.throw();
+            }
+
+            if (action == GLFW_RELEASE){
+                double a = sqrt((xposNew-canX)*(xposNew-canX) + (yposNew-canY)*(yposNew-canY));
+                cannonball.reset(canX + (xposNew-canX)*0/a , canY + (yposNew-canY)*0/a);
+                cannonball.xVel = (xposNew-canX)*1/20 ; cannonball.yVel = (yposNew-canY)*1/20;
+                //cout<<cannonball.xVel<<" "<<cannonball.yVel<<" "<<cannonball.yVel/cannonball.xVel<<endl;
+                cannonball.yAcc = -0.01;
+                triangle_rot_dir *= -1;
+              }
+            break;
+        case GLFW_MOUSE_BUTTON_RIGHT:
+            if (action == GLFW_RELEASE) {
+                rectangle_rot_dir *= -1;
+            }
+            break;
+        default:
+            break;
+    }
+}
 
 /* Render the scene with openGL */
 /* Edit this function according to your assignment */
@@ -494,7 +573,7 @@ void draw ()
 {
   // clear the color and depth in the frame buffer
   glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+  glClearColor(0.9f, 0.9f, 0.98f, 0.0f);
   // use the loaded shader program
   // Don't change unless you know what you are doing
   glUseProgram (programID);
@@ -523,43 +602,23 @@ void draw ()
   // Load identity to model matrix
   Matrices.model = glm::mat4(1.0f);
 
-  /* Render your scene */
-
-  glm::mat4 translateTriangle = glm::translate (glm::vec3(-2.0f, 0.0f, 0.0f)); // glTranslatef
-  glm::mat4 rotateTriangle = glm::rotate((float)(triangle_rotation*M_PI/180.0f), glm::vec3(0,0,1));  // rotate about vector (1,0,0)
-  glm::mat4 triangleTransform = translateTriangle * rotateTriangle;
-  Matrices.model *= triangleTransform;
-  MVP = VP * Matrices.model; // MVP = p * V * M
-
-  //  Don't change unless you are sure!!
-  glUniformMatrix4fv(Matrices.MatrixID, 1, GL_FALSE, &MVP[0][0]);
-
-  // draw3DObject draws the VAO given to it using current MVP matrix
-  //draw3DObject(triangle);
-
   // Pop matrix to undo transformations till last push matrix instead of recomputing model matrix
   // glPopMatrix ();
-  Matrices.model = glm::mat4(1.0f);
-  rectangle_rotation=0; //Comment to enable rotation
-  glm::mat4 translateRectangle = glm::translate (glm::vec3(0, 0, 0));        // glTranslatef
-  glm::mat4 rotateRectangle = glm::rotate((float)(rectangle_rotation*M_PI/180.0f), glm::vec3(0,0,1)); // rotate about vector (-1,1,1)
-  Matrices.model *= (translateRectangle * rotateRectangle);
-  MVP = VP * Matrices.model;
-  glUniformMatrix4fv(Matrices.MatrixID, 1, GL_FALSE, &MVP[0][0]);
-
-  // draw3DObject draws the VAO given to it using current MVP matrix
-  //draw3DObject(rectangle);
 
   World.update();
-  //Draw circle
-  Matrices.model = glm::mat4(1.0f);
-  rectangle_rotation=0; //Comment to enable rotation
-  glm::mat4 translateCircle = glm::translate (glm::vec3(0, translateY, 0));        // glTranslatef
-  glm::mat4 rotateCircle = glm::rotate((float)(rectangle_rotation*M_PI/180.0f), glm::vec3(0,0,1)); // rotate about vector (-1,1,1)
-  Matrices.model *= (translateCircle * rotateCircle);
-  MVP = VP * Matrices.model;
-  glUniformMatrix4fv(Matrices.MatrixID, 1, GL_FALSE, &MVP[0][0]);
-  draw3DObject(circle);
+
+  //draw walls
+  for(int i=0; i<4; i++){wall[i].update(); checkCollision(wall[i], cannonball);}
+  for(int i=0; i<platformNumber; i++){platform[i].update(); checkCollision(platform[i], cannonball);}
+  targetA.update();
+
+  //Draw cannon
+  cannon.update();
+
+  //Draw cannonball
+  cannonball.update();
+  cannonball.updatePhysics();
+  checkColloisionCircle(cannonball, targetA);
   // Increment angles
   float increments = 1;
 
@@ -569,6 +628,7 @@ void draw ()
 
   //Translation
   translateY += 0.01 ;
+  glFlush();
 }
 
 
@@ -628,8 +688,11 @@ void initGL (GLFWwindow* window, int width, int height)
 	// Create the models
 	createTriangle (); // Generate the VAO, VBOs, vertices data & copy into the array buffer
 	//base.createRectangle (-4, -2, 1, 1);
-  cannon.createCircle (0.2);
+  //cannon.createCircle (0.2);
   World.mapInit();
+  makewalls();
+  cannonball.objInit(77, 77, canR);
+  cannon.objInit(canX, canY, 1.4);
 	//ball.createCircle (1);
 	// Create and compile our GLSL program from the shaders
 	programID = LoadShaders( "Sample_GL.vert", "Sample_GL.frag" );
@@ -654,8 +717,8 @@ void initGL (GLFWwindow* window, int width, int height)
 
 int main (int argc, char** argv)
 {
-	int width = 1080;
-	int height = 1080;
+	int width = 1280;
+	int height = 720;
 
     GLFWwindow* window = initGLFW(width, height);
 
@@ -667,18 +730,22 @@ int main (int argc, char** argv)
     while (!glfwWindowShouldClose(window)) {
 
         // OpenGL Draw commands
-        draw();
 
-        // Swap Frame Buffer in double buffering
-        glfwSwapBuffers(window);
-
-        // Poll for Keyboard and mouse events
-        glfwPollEvents();
 
         // Control based on time (Time based transformation like 5 degrees rotation every 0.5s)
         current_time = glfwGetTime(); // Time in seconds
-        if ((current_time - last_update_time) >= 0.5) { // atleast 0.5s elapsed since last frame
+        if ((current_time - last_update_time) >= 0.01) { // atleast 0.5s elapsed since last frame
             // do something every 0.5 seconds ..
+            draw();
+
+            // Swap Frame Buffer in double buffering
+            glfwSwapBuffers(window);
+
+            glfwGetCursorPos(window, &xpos, &ypos);
+            xposNew = (xpos-(1280/2))*32/1280; yposNew = (-ypos+(720/2))*18/720;
+            //cout<<ypos<<" "<<xposNew<<" "<<yposNew<<" "<<(yposNew+7)/(xposNew+14)<<endl;
+            // Poll for Keyboard and mouse events
+            glfwPollEvents();
             last_update_time = current_time;
         }
     }
